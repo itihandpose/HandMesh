@@ -16,7 +16,7 @@ import time
 from PIL import Image
 from utils.transforms import rigid_align
 import gradio as gr
-from options.base_options import BaseOptions
+from options.base_options_2 import BaseOptions
 import os.path as osp
 from mobrecon.mobrecon_densestack import MobRecon
 from utils.read import spiral_tramsform
@@ -50,7 +50,7 @@ class Runner(object):
             image = Image.fromarray(np.uint8(image)) #.convert('RGB')
             image.resize(size=(args.size, args.size))
             image = np.array(image)
-            input = torch.from_numpy(base_transform(image, size=args.size)).unsqueeze(0).to(self.device) # A tensor with shape (1, 224, 224, 3)
+            input = torch.from_numpy(base_transform(image, size=args.size)).unsqueeze(0).to(self.device) # A tensor with shape (1, 128, 128, 3)
             K = np.array([[500, 0, 128], [0, 500, 128], [0, 0, 1]])
                 
             K[0, 0] = K[0, 0] / 224 * args.size
