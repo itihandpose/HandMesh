@@ -16,4 +16,4 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HUGGINGFACE }}
-        run: git lfs push --force https://iti:$HF_TOKEN@huggingface.co/spaces/iti/HandMesh main
+        run: git lfs --all push --force https://iti:$HF_TOKEN@huggingface.co/spaces/iti/HandMesh main
