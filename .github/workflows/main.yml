@@ -15,5 +15,5 @@ jobs:
           fetch-depth: 0
       - name: Push to hub
         env:
-          HF_TOKEN: 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
+          HF_TOKEN: ${{ secrets.HUGGINGFACE }}
         run: git push --force https://iti:$HF_TOKEN@huggingface.co/spaces/iti/HandMesh main
