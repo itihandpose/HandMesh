@@ -16,4 +16,4 @@ jobs:
       - name: create env
         env:
           HF_TOKEN: ${{ secrets.HANDPOSE_OMAR }}
-        run: conda activate handmesh
+        run: conda env list
