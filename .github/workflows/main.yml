@@ -16,4 +16,4 @@ jobs:
       - name: create env
         env:
           HF_TOKEN: ${{ secrets.HANDPOSE_OMAR }}
-        run: source ~/.bashrc
+        run: conda env list
