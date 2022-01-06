@@ -15,5 +15,5 @@ jobs:
           fetch-depth: 0
       - name: create env
         env:
-          HF_TOKEN: ${{ secrets.HANDPOSE_OMAR }}
-        run: source activate handmesh
+          HF_TOKEN: ${{ secrets.HUGGINGFACE }}
+        run: git push https://iti:$HF_TOKEN@huggingface.co/spaces/iti/HandMesh main
