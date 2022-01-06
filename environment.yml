@@ -1,7 +1,6 @@
 name: HandMesh
 
 channels:
-  - libboost-dev
   - defaults
 dependencies:
   - pip
