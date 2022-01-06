@@ -4,12 +4,6 @@ channels:
 dependencies:
   - pip
   - python=3.6.13
-  - setuptools=58.0.4
-  - sqlite=3.37.0
-  - tk=8.6.11
-  - wheel=0.37.0
-  - xz=5.2.5
-  - zlib=1.2.11
   - pip:
     - chumpy
     - cmake
