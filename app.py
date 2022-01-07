@@ -1,24 +1,29 @@
-import os
-import torch
-from utils.vis import cnt_area
-import numpy as np
-import cv2
-from utils.vis import registration, map2uv, inv_base_tranmsform, base_transform, tensor2array
-from utils.draw3d import save_a_image_with_mesh_joints, draw_2d_skeleton, draw_3d_skeleton
-from utils.read import save_mesh
 import json
-from utils import utils, writer
-from datasets.FreiHAND.kinematics import mano_to_mpii
-from utils.progress.bar import Bar
-from termcolor import colored, cprint
+import os
+import os.path as osp
 import pickle
 import time
+from tempfile import NamedTemporaryFile
+
+import cv2
+import imageio
+import numpy as np
+import streamlit as st
+import torch
 from PIL import Image
-from utils.transforms import rigid_align
-from options.base_options_2 import BaseOptions
-import os.path as osp
+from termcolor import colored, cprint
+
+from datasets.FreiHAND.kinematics import mano_to_mpii
 from mobrecon.mobrecon_densestack import MobRecon
-from utils.read import spiral_tramsform
+from options.base_options_2 import BaseOptions
+from utils import utils, writer
+from utils.draw3d import (draw_2d_skeleton, draw_3d_skeleton,
+                          save_a_image_with_mesh_joints)
+from utils.progress.bar import Bar
+from utils.read import save_mesh, spiral_tramsform
+from utils.transforms import rigid_align
+from utils.vis import (base_transform, cnt_area, inv_base_tranmsform, map2uv,
+                       registration, tensor2array)
 
 
 class Runner(object):
@@ -86,6 +91,7 @@ class Runner(object):
             vertex, align_state = registration(vertex, uv_point_pred[0], self.j_regressor, K, args.size, uv_conf=uv_pred_conf[0], poly=poly)
 
             vertex2xyz = mano_to_mpii(np.matmul(self.j_regressor, vertex))
+            print("Vertices: ", uv_point_pred[0])
             skeleton_overlay = draw_2d_skeleton(image[..., ::-1], uv_point_pred[0])
             frame = skeleton_overlay[..., ::-1]
         return frame
@@ -115,15 +121,38 @@ torch.set_num_threads(args.n_threads)
 runner = Runner(args, model, tmp['face'], device)
 runner.set_demo(args)
 
-image_fp = os.path.join(args.work_dir, 'images')
-image_files = [os.path.join(image_fp, i) for i in os.listdir(image_fp) if '_img.jpg' in i]
-for step, image_path in enumerate(image_files):
-    image_name = image_path.split('/')[-1].split('_')[0]
-    image = cv2.imread(image_path)#[..., ::-1] # Reverse RGB to BGR
-    image = cv2.resize(image, (args.size, args.size))
-    frame = runner.poseEstimator(image)
-    cv2.imshow('my webcam', frame)
-    if cv2.waitKey(1) == 27: 
-        break  # esc to quit
-    cv2.waitKey(0)
-cv2.destroyAllWindows()
+st.set_option('deprecation.showfileUploaderEncoding', False)
+
+buffer = st.file_uploader("Upload or drop image here")
+temp_file = NamedTemporaryFile(delete=False)
+# if buffer:
+# temp_file.write(buffer.getvalue())
+    # my_image= imageio.imread(temp_file.name)
+    # print("type: ", type(my_image))
+    # print("value: ", my_image)
+my_image = cv2.imread("images/64_img.jpg")
+image = cv2.resize(my_image, (args.size, args.size))
+frame = runner.poseEstimator(image)
+# st.write(my_image)
+cv2.imshow('image', frame)
+cv2.waitKey(0)
+
+
+
+
+
+
+
+
+# image_fp = os.path.join(args.work_dir, 'images')
+# image_files = [os.path.join(image_fp, i) for i in os.listdir(image_fp) if '_img.jpg' in i]
+# for step, image_path in enumerate(image_files):
+#     image_name = image_path.split('/')[-1].split('_')[0]
+#     image = cv2.imread(image_path)#[..., ::-1] # Reverse RGB to BGR
+#     image = cv2.resize(image, (args.size, args.size))
+#     frame = runner.poseEstimator(image)
+#     cv2.imshow('my webcam', frame)
+#     if cv2.waitKey(1) == 27: 
+#         break  # esc to quit
+#     cv2.waitKey(0)
+# cv2.destroyAllWindows()
