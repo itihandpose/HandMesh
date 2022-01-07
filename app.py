@@ -44,7 +44,7 @@ class Runner(object):
           self.j_regressor[k, v] = 1
       self.std = torch.tensor(0.20)
 
-    def poseEstimator(self, image):
+    def poseEstimator(self, image, padding=0):
         args = self.args
         self.model.eval()
 
@@ -63,19 +63,7 @@ class Runner(object):
             out = self.model(input)
 
             # silhouette
-            mask_pred = out.get('mask_pred')
-            if mask_pred is not None:
-                mask_pred = (mask_pred[0] > 0.3).cpu().numpy().astype(np.uint8)
-                mask_pred = cv2.resize(mask_pred, (input.size(3), input.size(2)))
-                try:
-                    contours, _ = cv2.findContours(mask_pred, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                    contours.sort(key=cnt_area, reverse=True)
-                    poly = contours[0].transpose(1, 0, 2).astype(np.int32)
-                except:
-                    poly = None
-            else:
-                mask_pred = np.zeros([input.size(3), input.size(2)])
-                poly = None
+            poly = None
 
                 
             # vertex
@@ -93,8 +81,28 @@ class Runner(object):
             vertex2xyz = mano_to_mpii(np.matmul(self.j_regressor, vertex))
             print("Vertices: ", uv_point_pred[0])
             skeleton_overlay = draw_2d_skeleton(image[..., ::-1], uv_point_pred[0])
-            frame = skeleton_overlay[..., ::-1]
-        return frame
+
+            img_original = image.copy()
+            skeleton_overlay = skeleton_overlay[..., ::-1]
+
+            img_list = [
+                img_original,
+                skeleton_overlay
+                ]
+            image_height = image.shape[0]
+            image_width = image.shape[1]
+            num_column = len(img_list)
+
+            grid_image = np.zeros(((image_height + padding), num_column * (image_width + padding), 3), dtype=np.uint8)
+
+            width_begin = 0
+            width_end = image_width
+            for show_img in img_list:
+                grid_image[:, width_begin:width_end, :] = show_img[..., :3]
+                width_begin += (image_width + padding)
+                width_end = width_begin + image_width
+            
+            return grid_image
 
 # get config
 args = BaseOptions().parse()
