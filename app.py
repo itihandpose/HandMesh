@@ -44,9 +44,9 @@ class Runner(object):
         self.model.eval()
 
         with torch.no_grad():
-            image = Image.fromarray(np.uint8(image)) #.convert('RGB')
-            image.resize(size=(args.size, args.size))
-            image = np.array(image)
+            # image = Image.fromarray(np.uint8(image)) #.convert('RGB')
+            # image.resize(size=(args.size, args.size))
+            # image = np.array(image)
             input = torch.from_numpy(base_transform(image, size=args.size)).unsqueeze(0).to(self.device) # A tensor with shape (1, 128, 128, 3)
             K = np.array([[500, 0, 128], [0, 500, 128], [0, 0, 1]])
                 
@@ -125,3 +125,5 @@ for step, image_path in enumerate(image_files):
     cv2.imshow('my webcam', frame)
     if cv2.waitKey(1) == 27: 
         break  # esc to quit
+    cv2.waitKey(0)
+cv2.destroyAllWindows()
