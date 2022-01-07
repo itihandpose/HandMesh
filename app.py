@@ -15,7 +15,6 @@ import pickle
 import time
 from PIL import Image
 from utils.transforms import rigid_align
-import gradio as gr
 from options.base_options_2 import BaseOptions
 import os.path as osp
 from mobrecon.mobrecon_densestack import MobRecon
@@ -43,8 +42,6 @@ class Runner(object):
     def poseEstimator(self, image):
         args = self.args
         self.model.eval()
-        image_fp = os.path.join(args.work_dir, 'images')
-        image_files = [os.path.join(image_fp, i) for i in os.listdir(image_fp) if '_img.jpg' in i]
 
         with torch.no_grad():
             image = Image.fromarray(np.uint8(image)) #.convert('RGB')
@@ -118,5 +115,13 @@ torch.set_num_threads(args.n_threads)
 runner = Runner(args, model, tmp['face'], device)
 runner.set_demo(args)
 
-iface = gr.Interface(runner.poseEstimator, gr.inputs.Image(shape=(224, 224)), "image")
-iface.launch()
+image_fp = os.path.join(args.work_dir, 'images')
+image_files = [os.path.join(image_fp, i) for i in os.listdir(image_fp) if '_img.jpg' in i]
+for step, image_path in enumerate(image_files):
+    image_name = image_path.split('/')[-1].split('_')[0]
+    image = cv2.imread(image_path)#[..., ::-1] # Reverse RGB to BGR
+    image = cv2.resize(image, (args.size, args.size))
+    frame = runner.poseEstimator(image)
+    cv2.imshow('my webcam', frame)
+    if cv2.waitKey(1) == 27: 
+        break  # esc to quit
