@@ -25,6 +25,8 @@ from torch.utils.data import DataLoader
 from run2 import Runner
 from termcolor import cprint
 from tensorboardX import SummaryWriter
+import sys
+from streamlit import cli as stcli
 
 
 template_fp = osp.join(args.work_dir, 'template', 'template.ply')
@@ -40,18 +42,21 @@ torch.set_num_threads(args.n_threads)
 runner = Runner(args, model, tmp['face'], device)
 runner.set_demo(args)
 
-st.set_option('deprecation.showfileUploaderEncoding', False)
+def main():
+    st.set_option('deprecation.showfileUploaderEncoding', False)
 
-buffer = st.file_uploader("Upload or drop image here")
-temp_file = NamedTemporaryFile(delete=False)
-# if buffer:
-# temp_file.write(buffer.getvalue())
-    # my_image= imageio.imread(temp_file.name)
-    # print("type: ", type(my_image))
-    # print("value: ", my_image)
-my_image = cv2.imread("images/64_img.jpg")
-image = cv2.resize(my_image, (args.size, args.size))
-frame = runner.poseEstimator(image)
-# st.write(my_image)
-cv2.imshow('image', frame)
-cv2.waitKey(0)
+    buffer = st.file_uploader("Image here")
+    temp_file = NamedTemporaryFile(delete=False)
+    my_image = cv2.imread("images/64_img.jpg")
+    image = cv2.resize(my_image, (args.size, args.size))
+    frame = runner.poseEstimator(image)
+    # st.write(my_image)
+    cv2.imshow('image', frame)
+    cv2.waitKey(0)
+        
+if __name__ == '__main__':
+        if st._is_running_with_streamlit:
+            main()
+        else:
+            sys.argv = ["streamlit", "run", sys.argv[0]]
+            sys.exit(stcli.main())
