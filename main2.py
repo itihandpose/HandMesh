@@ -49,7 +49,7 @@ def main():
     temp_file = NamedTemporaryFile(delete=False)
     my_image = cv2.imread("images/64_img.jpg")
     image = cv2.resize(my_image, (args.size, args.size))
-    frame = runner.poseEstimator(image)
+    frame = runner.demo(image)
     # st.write(my_image)
     cv2.imshow('image', frame)
     cv2.waitKey(0)
