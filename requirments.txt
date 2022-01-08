@@ -17,3 +17,4 @@ open3d
 scikit-learn
 scikit-image==0.16.2
 termcolor
+torch==1.7.1
