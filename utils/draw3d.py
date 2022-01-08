@@ -1,17 +1,18 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+from itertools import combinations
 
 import cv2
-import numpy as np
-
 import matplotlib
+import numpy as np
+import torch
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.tri as mtri
+from matplotlib.patches import Rectangle
+from mpl_toolkits.mplot3d import Axes3D
 
 color_hand_joints = [[1.0, 0.0, 0.0],
                      [0.0, 0.4, 0.0], [0.0, 0.6, 0.0], [0.0, 0.8, 0.0], [0.0, 1.0, 0.0],  # thumb
@@ -74,9 +75,10 @@ def draw_mesh(image, cam_param, mesh_xyz, face):
     :param face: 1538 x 3 x 2
     :return:
     """
-    vertex2uv = np.matmul(cam_param, mesh_xyz.T).T
-    vertex2uv = (vertex2uv / vertex2uv[:, 2:3])[:, :2].astype(np.int)
+    # (color channels are shifted BGR)
 
+    vertex2uv = np.matmul(cam_param, mesh_xyz.T).T
+    vertex2uv = (vertex2uv / vertex2uv[:, 2:3])[:, :2].astype(np.int) # (778, 2)
     fig = plt.figure()
     fig.set_size_inches(float(image.shape[0]) / fig.dpi, float(image.shape[1]) / fig.dpi, forward=True)
     plt.imshow(image)
@@ -86,6 +88,26 @@ def draw_mesh(image, cam_param, mesh_xyz, face):
     else:
         plt.triplot(vertex2uv[:, 0], vertex2uv[:, 1], face, lw=0.5, color='orange')
 
+    # obtain min and max of coordinates
+    minxy = torch.as_tensor([float("inf"), float("inf")], dtype=torch.float32)
+    maxxy = torch.zeros(2, dtype=torch.float32)
+
+    coords = torch.from_numpy(vertex2uv).view(-1, 2).to(dtype=torch.float32)
+    minxy = torch.min(minxy, torch.min(coords, dim=0).values)
+    maxxy = torch.max(maxxy, torch.max(coords, dim=0).values)
+
+    # plot min and max points in array in blue
+    # plt.plot(minxy[0], minxy[1], 'r.', markersize=5)    # top left
+    # plt.plot(maxxy[0], maxxy[1], 'r.', markersize=5)    # bottom right
+    plt.gca().add_patch(
+        Rectangle(
+            xy=minxy, 
+            width=maxxy[0]-minxy[0], 
+            height=maxxy[1]-minxy[1], 
+            edgecolor='blue',
+            facecolor='none',
+            lw=1) )
+    
     plt.subplots_adjust(left=0., right=1., top=1., bottom=0, wspace=0, hspace=0)
 
     ret = fig2data(fig)
@@ -107,8 +129,8 @@ def draw_2d_skeleton(image, pose_uv):
     """
     assert pose_uv.shape[0] == 21
     skeleton_overlay = image.copy()
-    marker_sz = 6
-    line_wd = 3
+    marker_sz = 2
+    line_wd = 1
     root_ind = 0
 
     for joint_ind in range(pose_uv.shape[0]):
@@ -147,8 +169,8 @@ def draw_3d_skeleton(pose_cam_xyz, image_size):
     fig.set_size_inches(float(image_size[0]) / fig.dpi, float(image_size[1]) / fig.dpi, forward=True)
 
     ax = plt.subplot(111, projection='3d')
-    marker_sz = 10
-    line_wd = 2
+    marker_sz = 2
+    line_wd = 1
 
     for i, shape in enumerate(camera_shape):
         ax.plot(shape[0], shape[1], shape[2], color=camera_color, linestyle=(':', '-')[i==0])
@@ -165,7 +187,6 @@ def draw_3d_skeleton(pose_cam_xyz, image_size):
             ax.plot(pose_cam_xyz[[joint_ind - 1, joint_ind], 0], pose_cam_xyz[[joint_ind - 1, joint_ind], 1],
                     pose_cam_xyz[[joint_ind - 1, joint_ind], 2], color=color_hand_joints[joint_ind],
                     linewidth=line_wd)
-
     ax.axis('auto')
     x_lim = [-0.1, 0.1, 0.02]
     y_lim = [-0.1, 0.12, 0.02]
@@ -204,6 +225,27 @@ def draw_3d_mesh(mesh_xyz, image_size, face):
     triang = mtri.Triangulation(mesh_xyz[:, 0], mesh_xyz[:, 1], triangles=face)
     ax.plot_trisurf(triang, mesh_xyz[:, 2], color=(145/255, 181/255, 255/255))
 
+    # obtain min and max of coordinates
+    minxyz = torch.as_tensor([float("inf"), float("inf"), float("inf")], dtype=torch.float32)
+    maxxyz = torch.zeros(3, dtype=torch.float32)
+
+    coords = torch.from_numpy(mesh_xyz).view(-1, 3).to(dtype=torch.float32)
+    minxyz = torch.min(minxyz, torch.min(coords, dim=0).values)
+    maxxyz = torch.max(maxxyz, torch.max(coords, dim=0).values)
+
+    # plot min and max points in array in blue
+
+    xmin, xmax = minxyz[0], maxxyz[0]
+    ymin, ymax = minxyz[1], maxxyz[1]
+    zmin, zmax = minxyz[2], maxxyz[2]
+    ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
+
+    # Plot cuboid outline
+    edges_kw = dict(color='r', linewidth=1, zorder=1e3)
+    ax.plot([xmax, xmax], [ymin, ymax], [zmax, zmax], **edges_kw)
+    ax.plot([xmin, xmax], [ymin, ymin], [zmin, zmin], **edges_kw)
+    ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
+
     ax.axis('auto')
     x_lim = [-0.1, 0.1, 0.02]
     y_lim = [-0.1, 0.12, 0.02]
@@ -226,7 +268,7 @@ def draw_3d_mesh(mesh_xyz, image_size, face):
     plt.close(fig)
     return ret
 
-def save_a_image_with_mesh_joints(image, mask, poly, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name, padding=0, ret=False):
+def save_a_image_with_mesh_joints(image, mask, poly, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0, ret=False):
     """
     :param mesh_plot:
     :param image: H x W x 3 (np.array)
@@ -245,12 +287,19 @@ def save_a_image_with_mesh_joints(image, mask, poly, cam_param, mesh_xyz, face, 
         img_mask = draw_silhouette(image, mask, poly)
     else:
         img_mask = image.copy()
-    rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
+    # rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
     skeleton_overlay = draw_2d_skeleton(image, pose_uv)
-    skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
-    mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
+    # skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
+    # mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
 
-    img_list = [img_mask, skeleton_overlay, rend_img_overlay, mesh_3d, skeleton_3d]
+
+    img_list = [
+        img_mask, 
+        skeleton_overlay, 
+        # rend_img_overlay, 
+        # mesh_3d, 
+        # skeleton_3d
+        ]
     image_height = image.shape[0]
     image_width = image.shape[1]
     num_column = len(img_list)
@@ -267,3 +316,93 @@ def save_a_image_with_mesh_joints(image, mask, poly, cam_param, mesh_xyz, face, 
         return grid_image
 
     cv2.imwrite(file_name, grid_image)
+
+
+
+def display_image_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0):
+    """
+    :param mesh_plot:
+    :param image: H x W x 3 (np.array)
+    :param mask: H x W (np.array)
+    :param poly: 1 x N x 2 (np.array)
+    :param cam_params: 3 x 3 (np.array)
+    :param mesh_xyz: 778 x 3 (np.array)
+    :param face: 1538 x 3 (np.array)
+    :param pose_uv: 21 x 2 (np.array)
+    :param pose_xyz: 21 x 3 (np.array)
+    :param file_name:
+    :param padding:
+    :return:
+    """
+    img_mask = image.copy()
+    # rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
+    skeleton_overlay = draw_2d_skeleton(image, pose_uv)
+    # mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
+    # skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
+
+
+    img_list = [
+        img_mask, 
+        # rend_img_overlay, 
+        skeleton_overlay, 
+        # mesh_3d, 
+        # skeleton_3d
+        ]
+    image_height = image.shape[0]
+    image_width = image.shape[1]
+    num_column = len(img_list)
+
+    grid_image = np.zeros(((image_height + padding), num_column * (image_width + padding), 3), dtype=np.uint8)
+
+    width_begin = 0
+    width_end = image_width
+    for show_img in img_list:
+        grid_image[:, width_begin:width_end, :] = show_img[..., :3]
+        width_begin += (image_width + padding)
+        width_end = width_begin + image_width
+    
+    return grid_image
+
+def display_video_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0):
+    """
+    :param mesh_plot:
+    :param image: H x W x 3 (np.array)
+    :param mask: H x W (np.array)
+    :param poly: 1 x N x 2 (np.array)
+    :param cam_params: 3 x 3 (np.array)
+    :param mesh_xyz: 778 x 3 (np.array)
+    :param face: 1538 x 3 (np.array)
+    :param pose_uv: 21 x 2 (np.array)
+    :param pose_xyz: 21 x 3 (np.array)
+    :param file_name:
+    :param padding:
+    :return:
+    """
+    # img_mask = image.copy()
+    # rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
+    skeleton_overlay = draw_2d_skeleton(image, pose_uv)
+    # mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
+    # skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
+
+
+    img_list = [
+        # img_mask, 
+        # rend_img_overlay, 
+        skeleton_overlay, 
+        # mesh_3d, 
+        # skeleton_3d
+        ]
+    image_height = image.shape[0]
+    image_width = image.shape[1]
+    num_column = len(img_list)
+
+    grid_image = np.zeros(((image_height + padding), num_column * (image_width + padding), 3), dtype=np.uint8)
+
+    width_begin = 0
+    width_end = image_width
+    for show_img in img_list:
+        grid_image[:, width_begin:width_end, :] = show_img[..., :3]
+        width_begin += (image_width + padding)
+        width_end = width_begin + image_width
+    
+    return grid_image
