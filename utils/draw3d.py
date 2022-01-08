@@ -99,14 +99,14 @@ def draw_mesh(image, cam_param, mesh_xyz, face):
     # plot min and max points in array in blue
     # plt.plot(minxy[0], minxy[1], 'r.', markersize=5)    # top left
     # plt.plot(maxxy[0], maxxy[1], 'r.', markersize=5)    # bottom right
-    plt.gca().add_patch(
-        Rectangle(
-            xy=minxy, 
-            width=maxxy[0]-minxy[0], 
-            height=maxxy[1]-minxy[1], 
-            edgecolor='blue',
-            facecolor='none',
-            lw=1) )
+    # plt.gca().add_patch(
+    #     Rectangle(
+    #         xy=minxy, 
+    #         width=maxxy[0]-minxy[0], 
+    #         height=maxxy[1]-minxy[1], 
+    #         edgecolor='blue',
+    #         facecolor='none',
+    #         lw=1) )
     
     plt.subplots_adjust(left=0., right=1., top=1., bottom=0, wspace=0, hspace=0)
 
@@ -335,15 +335,15 @@ def display_image_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_
     :return:
     """
     img_mask = image.copy()
-    # rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
+    rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
     skeleton_overlay = draw_2d_skeleton(image, pose_uv)
     # mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
     # skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
 
 
     img_list = [
-        img_mask, 
-        # rend_img_overlay, 
+        # img_mask, 
+        rend_img_overlay, 
         skeleton_overlay, 
         # mesh_3d, 
         # skeleton_3d
