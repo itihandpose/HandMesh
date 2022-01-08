@@ -32,7 +32,7 @@ This repo uses the PyTorch implementation of hand mesh reconstruction described 
   ``` 
 + Run
   ```
-  ./scripts/demo_mobrecon.sh
+  ./scripts/demo_cmr.sh
   ./scripts/demo_mobrecon.sh
   ```
   The prediction results will be saved in output directory, e.g., `out/FreiHAND/mobrecon/demo`.
