@@ -3,21 +3,7 @@
 
 
 ## Introduction
-This repo is the PyTorch implementation of hand mesh reconstruction described in [CMR](https://arxiv.org/abs/2103.02845) and [MobRecon](https://arxiv.org/abs/2112.02753).
-
-## Update
-+ 2021-12.7, Add MobRecon demo.
-+ 2021-6-10, Add Human3.6M dataset.
-+ 2021-5-20, Add CMR-G model.
-
-## Features
-- [x] SpiralNet++
-- [x] Sub-pose aggregation
-- [x] Adaptive 2D-1D registration for mesh-image alignment
-- [x] DenseStack for 2D encoding
-- [x] Feature lifting with MapReg and PVL
-- [x] DSConv as an efficient mesh operator
-- [ ] MobRecon training with consistency learning and complement data
+This repo uses the PyTorch implementation of hand mesh reconstruction described in [CMR](https://arxiv.org/abs/2103.02845) and [MobRecon](https://arxiv.org/abs/2112.02753).
 
 ## Install 
 + Environment
@@ -46,7 +32,7 @@ This repo is the PyTorch implementation of hand mesh reconstruction described in
   ``` 
 + Run
   ```
-  ./scripts/demo_cmr.sh
+  ./scripts/demo_mobrecon.sh
   ./scripts/demo_mobrecon.sh
   ```
   The prediction results will be saved in output directory, e.g., `out/FreiHAND/mobrecon/demo`.
