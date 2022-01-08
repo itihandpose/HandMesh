@@ -14,7 +14,7 @@ import streamlit as st
 import torch
 from numpy.lib.type_check import imag
 from PIL import Image
-# from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
+from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
 from termcolor import colored, cprint
 
 from datasets.FreiHAND.kinematics import mano_to_mpii
@@ -26,9 +26,10 @@ from utils.transforms import rigid_align
 from utils.vis import (base_transform, cnt_area, inv_base_tranmsform, map2uv,
                        registration, tensor2array)
 
+
 st.set_page_config(
     layout="wide",
-    page_title="Hand Pose Estimation "
+    page_title="Hand Pose Estimation"
 )
 
 def get_image_download_link(img,filename,text):
@@ -388,7 +389,18 @@ class Runner(object):
             st.markdown(
                 '''<p style='text-align: left;'>Please place your right hand in front of the camera</p>''',
                 unsafe_allow_html=True)
-            # webrtc_streamer(key="example", video_transformer_factory=VideoProcessing)
+
+            cap = cv2.VideoCapture(-1)
+            webrtc_streamer(key="example", video_transformer_factory=self.demo_video(cap))
+
+            stframe = st.empty()
+            while cap.isOpened():
+                    out_video = self.demo_video(cap)
+                    # cv2.waitKey(1)
+                    # stframe.image(in_video)
+                    stframe.image(out_video)
+        
+        
         if choice == 'Video':
             st.markdown(
                 '''<p style='text-align: left; font-size: 15px'>Hand Pose Estimation is done using <a href="https://arxiv.org/abs/2112.02753">MobRecon</a></p>''',
