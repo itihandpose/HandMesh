@@ -361,9 +361,14 @@ def display_image_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_
         width_begin += (image_width + padding)
         width_end = width_begin + image_width
     
+    if len(img_list) == 1:
+        grid_image = cv2.resize(grid_image, (300, 300))
+    elif len(img_list) == 2:
+        grid_image = cv2.resize(grid_image, (700, 400))
+    
     return grid_image
 
-def display_video_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0):
+def display_video_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0, FPS=None):
     """
     :param mesh_plot:
     :param image: H x W x 3 (np.array)
@@ -404,5 +409,7 @@ def display_video_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_
         grid_image[:, width_begin:width_end, :] = show_img[..., :3]
         width_begin += (image_width + padding)
         width_end = width_begin + image_width
+    
+    cv2.putText(grid_image, f'FPS: {int(FPS)}', (5,15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
     
     return grid_image
