@@ -330,7 +330,12 @@ class Runner(object):
 
                 image = cv2.resize(img, (args.size, args.size))
                 input = torch.from_numpy(base_transform(image, size=args.size)).unsqueeze(0).to(self.device)
+
+                start = time.time()
                 out = self.model(input)
+                end=time.time()
+                fps = (end-start) ** -1
+
                 # silhouette
                 mask_pred = np.zeros([input.size(3), input.size(2)])
                 poly = None
@@ -346,7 +351,7 @@ class Runner(object):
 
                 vertex2xyz = mano_to_mpii(np.matmul(self.j_regressor, vertex))                
 
-                image_out = display_video_with_mesh_joints(image[..., ::-1], mask_pred, K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz)
+                image_out = display_video_with_mesh_joints(image[..., ::-1], mask_pred, K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz, FPS=fps)
                 frame_out = cv2.resize(image_out, (350, 350))
 
                 return frame_out
@@ -374,8 +379,7 @@ class Runner(object):
                 img = cv2.imread(temp_file.name)[..., ::-1]
                 img = cv2.resize(img, (350, 350))
 
-                img_out = self.demo_image(img)
-                img_out = cv2.resize(img_out, (700, 400))
+                img_out = self.demo_image(img)                
                 imgRGB=cv2.cvtColor(img_out,cv2.COLOR_BGR2RGB)
 
                 place_h = st.columns(2)
@@ -385,6 +389,7 @@ class Runner(object):
 
                 st.markdown(get_image_download_link(result, "out.jpg", 'Download image'), unsafe_allow_html=True)
         
+        
         if choice == 'Real-time':
             st.markdown(
                 '''<p style='text-align: left;'>Please place your right hand in front of the camera</p>''',
@@ -393,12 +398,12 @@ class Runner(object):
             cap = cv2.VideoCapture(-1)
             webrtc_streamer(key="example", video_transformer_factory=self.demo_video(cap))
 
-            stframe = st.empty()
+            stframe1 = st.empty()
             while cap.isOpened():
                     out_video = self.demo_video(cap)
                     # cv2.waitKey(1)
-                    # stframe.image(in_video)
-                    stframe.image(out_video)
+                    # stframe0.image(in_video)
+                    stframe1.image(out_video)
         
         
         if choice == 'Video':
@@ -415,7 +420,7 @@ class Runner(object):
 
                 stframe = st.empty()
                 stframe2 = st.empty()
-                col1= st.columns(2)
+                # col1= st.columns(2)
                 while cap.isOpened():
                     out_video = self.demo_video(cap)
                     cv2.waitKey(1)
