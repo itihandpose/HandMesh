@@ -334,16 +334,16 @@ def display_image_with_mesh_joints(image, cam_param, mesh_xyz, face, pose_uv, po
     :return:
     """
     # img_mask = image.copy()
-    rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
-    # skeleton_overlay = draw_2d_skeleton(image, pose_uv)
+    # rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
+    skeleton_overlay = draw_2d_skeleton(image, pose_uv)
     mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
     # skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
 
 
     img_list = [
         # img_mask, 
-        rend_img_overlay, 
-        # skeleton_overlay, 
+        # rend_img_overlay, 
+        skeleton_overlay, 
         mesh_3d, 
         # skeleton_3d
         ]
@@ -363,7 +363,7 @@ def display_image_with_mesh_joints(image, cam_param, mesh_xyz, face, pose_uv, po
     if len(img_list) == 1:
         grid_image = cv2.resize(grid_image, (350, 350))
     elif len(img_list) == 2:
-        grid_image = cv2.resize(grid_image, (700, 384))
+        grid_image = cv2.resize(grid_image, (640, 320))
     elif len(img_list) == 3:
         grid_image = cv2.resize(grid_image, (1152, 384))
     
