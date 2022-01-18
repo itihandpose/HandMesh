@@ -225,26 +225,26 @@ def draw_3d_mesh(mesh_xyz, image_size, face):
     triang = mtri.Triangulation(mesh_xyz[:, 0], mesh_xyz[:, 1], triangles=face)
     ax.plot_trisurf(triang, mesh_xyz[:, 2], color=(145/255, 181/255, 255/255))
 
-    # obtain min and max of coordinates
-    minxyz = torch.as_tensor([float("inf"), float("inf"), float("inf")], dtype=torch.float32)
-    maxxyz = torch.zeros(3, dtype=torch.float32)
+    # # obtain min and max of coordinates
+    # minxyz = torch.as_tensor([float("inf"), float("inf"), float("inf")], dtype=torch.float32)
+    # maxxyz = torch.zeros(3, dtype=torch.float32)
 
-    coords = torch.from_numpy(mesh_xyz).view(-1, 3).to(dtype=torch.float32)
-    minxyz = torch.min(minxyz, torch.min(coords, dim=0).values)
-    maxxyz = torch.max(maxxyz, torch.max(coords, dim=0).values)
+    # coords = torch.from_numpy(mesh_xyz).view(-1, 3).to(dtype=torch.float32)
+    # minxyz = torch.min(minxyz, torch.min(coords, dim=0).values)
+    # maxxyz = torch.max(maxxyz, torch.max(coords, dim=0).values)
 
-    # plot min and max points in array in blue
+    # # plot min and max points in array in blue
 
-    xmin, xmax = minxyz[0], maxxyz[0]
-    ymin, ymax = minxyz[1], maxxyz[1]
-    zmin, zmax = minxyz[2], maxxyz[2]
-    ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
+    # xmin, xmax = minxyz[0], maxxyz[0]
+    # ymin, ymax = minxyz[1], maxxyz[1]
+    # zmin, zmax = minxyz[2], maxxyz[2]
+    # ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
 
-    # Plot cuboid outline
-    edges_kw = dict(color='r', linewidth=1, zorder=1e3)
-    ax.plot([xmax, xmax], [ymin, ymax], [zmax, zmax], **edges_kw)
-    ax.plot([xmin, xmax], [ymin, ymin], [zmin, zmin], **edges_kw)
-    ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
+    # # Plot cuboid outline
+    # edges_kw = dict(color='r', linewidth=1, zorder=1e3)
+    # ax.plot([xmax, xmax], [ymin, ymax], [zmax, zmax], **edges_kw)
+    # ax.plot([xmin, xmax], [ymin, ymin], [zmin, zmin], **edges_kw)
+    # ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
 
     ax.axis('auto')
     x_lim = [-0.1, 0.1, 0.02]
@@ -287,18 +287,18 @@ def save_a_image_with_mesh_joints(image, mask, poly, cam_param, mesh_xyz, face, 
         img_mask = draw_silhouette(image, mask, poly)
     else:
         img_mask = image.copy()
-    # rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
     skeleton_overlay = draw_2d_skeleton(image, pose_uv)
-    # skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
-    # mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
+    rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
+    mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
+    skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
 
 
     img_list = [
         img_mask, 
         skeleton_overlay, 
-        # rend_img_overlay, 
-        # mesh_3d, 
-        # skeleton_3d
+        rend_img_overlay, 
+        mesh_3d, 
+        skeleton_3d
         ]
     image_height = image.shape[0]
     image_width = image.shape[1]
@@ -319,11 +319,10 @@ def save_a_image_with_mesh_joints(image, mask, poly, cam_param, mesh_xyz, face, 
 
 
 
-def display_image_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0):
+def display_image_with_mesh_joints(image, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0):
     """
     :param mesh_plot:
     :param image: H x W x 3 (np.array)
-    :param mask: H x W (np.array)
     :param poly: 1 x N x 2 (np.array)
     :param cam_params: 3 x 3 (np.array)
     :param mesh_xyz: 778 x 3 (np.array)
@@ -334,18 +333,18 @@ def display_image_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_
     :param padding:
     :return:
     """
-    img_mask = image.copy()
+    # img_mask = image.copy()
     rend_img_overlay = draw_mesh(image, cam_param, mesh_xyz, face)
-    skeleton_overlay = draw_2d_skeleton(image, pose_uv)
-    # mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
+    # skeleton_overlay = draw_2d_skeleton(image, pose_uv)
+    mesh_3d = draw_3d_mesh(mesh_xyz, image.shape[:2], face)
     # skeleton_3d = draw_3d_skeleton(pose_xyz, image.shape[:2])
 
 
     img_list = [
         # img_mask, 
         rend_img_overlay, 
-        skeleton_overlay, 
-        # mesh_3d, 
+        # skeleton_overlay, 
+        mesh_3d, 
         # skeleton_3d
         ]
     image_height = image.shape[0]
@@ -362,17 +361,18 @@ def display_image_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_
         width_end = width_begin + image_width
     
     if len(img_list) == 1:
-        grid_image = cv2.resize(grid_image, (300, 300))
+        grid_image = cv2.resize(grid_image, (350, 350))
     elif len(img_list) == 2:
-        grid_image = cv2.resize(grid_image, (700, 400))
+        grid_image = cv2.resize(grid_image, (700, 384))
+    elif len(img_list) == 3:
+        grid_image = cv2.resize(grid_image, (1152, 384))
     
     return grid_image
 
-def display_video_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0, FPS=None):
+def display_video_with_mesh_joints(image, cam_param, mesh_xyz, face, pose_uv, pose_xyz, file_name=None, padding=0, FPS=None):
     """
     :param mesh_plot:
     :param image: H x W x 3 (np.array)
-    :param mask: H x W (np.array)
     :param poly: 1 x N x 2 (np.array)
     :param cam_params: 3 x 3 (np.array)
     :param mesh_xyz: 778 x 3 (np.array)
@@ -409,7 +409,5 @@ def display_video_with_mesh_joints(image, mask, cam_param, mesh_xyz, face, pose_
         grid_image[:, width_begin:width_end, :] = show_img[..., :3]
         width_begin += (image_width + padding)
         width_end = width_begin + image_width
-    
-    cv2.putText(grid_image, f'FPS: {int(FPS)}', (5,15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
     
     return grid_image
