@@ -14,7 +14,7 @@ import streamlit as st
 import torch
 from numpy.lib.type_check import imag
 from PIL import Image
-from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
+# from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
 from termcolor import colored, cprint
 
 from datasets.FreiHAND.kinematics import mano_to_mpii
@@ -276,9 +276,6 @@ class Runner(object):
         return pa_j_error
 
 
-        # *************************
-
-
     def demo_image(self, img):
             args = self.args
             self.model.eval()
@@ -293,10 +290,6 @@ class Runner(object):
                 K[1, 2] = args.size // 2
 
                 out = self.model(input)
-
-                # silhouette
-                mask_pred = np.zeros([input.size(3), input.size(2)])
-                poly = None
                         
                 # vertex
                 pred = out['mesh_pred'][0] if isinstance(out['mesh_pred'], list) else out['mesh_pred']
@@ -306,11 +299,11 @@ class Runner(object):
                     uv_point_pred, uv_pred_conf = map2uv(uv_pred.cpu().numpy(), (input.size(2), input.size(3)))
                 else:
                     uv_point_pred, uv_pred_conf = (uv_pred * args.size).cpu().numpy(), [None,]
-                vertex, align_state = registration(vertex, uv_point_pred[0], self.j_regressor, K, args.size, uv_conf=uv_pred_conf[0], poly=poly)
+                vertex, align_state = registration(vertex, uv_point_pred[0], self.j_regressor, K, args.size, uv_conf=uv_pred_conf[0], poly=None)
 
                 vertex2xyz = mano_to_mpii(np.matmul(self.j_regressor, vertex))
 
-                image_out = display_image_with_mesh_joints(image[..., ::-1], mask_pred, K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz)
+                image_out = display_image_with_mesh_joints(image[..., ::-1], K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz)
                 return image_out
 
     def demo_video(self, video_capture):
@@ -330,15 +323,9 @@ class Runner(object):
 
                 image = cv2.resize(img, (args.size, args.size))
                 input = torch.from_numpy(base_transform(image, size=args.size)).unsqueeze(0).to(self.device)
-
                 start = time.time()
                 out = self.model(input)
-                end=time.time()
-                fps = (end-start) ** -1
 
-                # silhouette
-                mask_pred = np.zeros([input.size(3), input.size(2)])
-                poly = None
                 # vertex
                 pred = out['mesh_pred'][0] if isinstance(out['mesh_pred'], list) else out['mesh_pred']
                 vertex = (pred[0].cpu() * self.std.cpu()).numpy()
@@ -347,11 +334,15 @@ class Runner(object):
                     uv_point_pred, uv_pred_conf = map2uv(uv_pred.cpu().numpy(), (input.size(2), input.size(3)))
                 else:
                     uv_point_pred, uv_pred_conf = (uv_pred * args.size).cpu().numpy(), [None,]
-                vertex, align_state = registration(vertex, uv_point_pred[0], self.j_regressor, K, args.size, uv_conf=uv_pred_conf[0], poly=poly)
+                vertex, align_state = registration(vertex, uv_point_pred[0], self.j_regressor, K, args.size, uv_conf=uv_pred_conf[0], poly=None)
 
                 vertex2xyz = mano_to_mpii(np.matmul(self.j_regressor, vertex))                
 
-                image_out = display_video_with_mesh_joints(image[..., ::-1], mask_pred, K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz, FPS=fps)
+                image_out = display_video_with_mesh_joints(image[..., ::-1], K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz)
+                end=time.time()
+                fps = (end-start) ** -1
+                if fps:
+                    cv2.putText(image_out, f'FPS: {int(fps)}', (5,15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
                 frame_out = cv2.resize(image_out, (350, 350))
 
                 return frame_out
@@ -359,7 +350,7 @@ class Runner(object):
 
     def demo(self):
         st.title("Hand Pose Estimation")
-        activities = ["Image", "Real-time","Video"]
+        activities = ["Image","Video"]
         # st.set_option('deprecation.showfileUploaderEncoding', False)
         st.sidebar.markdown("# Choose Input Source")
         choice = st.sidebar.selectbox("Choose preferred mode:", activities)
@@ -390,22 +381,6 @@ class Runner(object):
                 st.markdown(get_image_download_link(result, "out.jpg", 'Download image'), unsafe_allow_html=True)
         
         
-        if choice == 'Real-time':
-            st.markdown(
-                '''<p style='text-align: left;'>Please place your right hand in front of the camera</p>''',
-                unsafe_allow_html=True)
-
-            cap = cv2.VideoCapture(-1)
-            webrtc_streamer(key="example", video_transformer_factory=self.demo_video(cap))
-
-            stframe1 = st.empty()
-            while cap.isOpened():
-                    out_video = self.demo_video(cap)
-                    # cv2.waitKey(1)
-                    # stframe0.image(in_video)
-                    stframe1.image(out_video)
-        
-        
         if choice == 'Video':
             st.markdown(
                 '''<p style='text-align: left; font-size: 15px'>Hand Pose Estimation is done using <a href="https://arxiv.org/abs/2112.02753">MobRecon</a></p>''',
@@ -418,7 +393,7 @@ class Runner(object):
 
                 cap = cv2.VideoCapture(tfile.name)
 
-                stframe = st.empty()
+                # stframe = st.empty()
                 stframe2 = st.empty()
                 # col1= st.columns(2)
                 while cap.isOpened():
@@ -426,154 +401,3 @@ class Runner(object):
                     cv2.waitKey(1)
                     # stframe.image(in_video)
                     stframe2.image(out_video)
-
-
-
-
-
-
-# ****************************************************************************** streamlit ******************************************************************************
-    # def demo(self):
-    #     args = self.args
-    #     self.model.eval()
-    #     with torch.no_grad():
-    #         st.set_option('deprecation.showfileUploaderEncoding', False)
-
-    #         buffer = st.file_uploader("Upload or drop image here")
-    #         temp_file = NamedTemporaryFile(delete=False)
-    #         if buffer:
-    #             temp_file.write(buffer.getvalue())
-    #             image = cv2.imread(temp_file.name)[..., ::-1]
-    #             image = cv2.resize(image, (args.size, args.size))
-    #             input = torch.from_numpy(base_transform(image, size=args.size)).unsqueeze(0).to(self.device)
-                
-    #             K = np.array([[500, 0, 112], [0, 500, 112], [0, 0, 1]])
-    #             K[0, 0] = K[0, 0] / 224 * args.size
-    #             K[1, 1] = K[1, 1] / 224 * args.size
-    #             K[0, 2] = args.size // 2
-    #             K[1, 2] = args.size // 2
-
-    #             out = self.model(input)
-
-    #             # silhouette
-    #             mask_pred = np.zeros([input.size(3), input.size(2)])
-    #             poly = None
-                    
-    #             # vertex
-    #             pred = out['mesh_pred'][0] if isinstance(out['mesh_pred'], list) else out['mesh_pred']
-    #             vertex = (pred[0].cpu() * self.std.cpu()).numpy()
-    #             uv_pred = out['uv_pred']
-    #             if uv_pred.ndim == 4:
-    #                 uv_point_pred, uv_pred_conf = map2uv(uv_pred.cpu().numpy(), (input.size(2), input.size(3)))
-    #             else:
-    #                 uv_point_pred, uv_pred_conf = (uv_pred * args.size).cpu().numpy(), [None,]
-    #             vertex, align_state = registration(vertex, uv_point_pred[0], self.j_regressor, K, args.size, uv_conf=uv_pred_conf[0], poly=poly)
-
-    #             vertex2xyz = mano_to_mpii(np.matmul(self.j_regressor, vertex))
-
-    #             out_image = save_a_image_with_mesh_joints(image[..., ::-1], mask_pred, poly, K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz)
-                
-    #             cv2.imshow('image',out_image)
-    #             cv2.waitKey(0)
-
-
-# ****************************************************************************** read images ******************************************************************************
-    # def demo(self):
-    #     args = self.args
-    #     self.model.eval()
-    #     image_fp = os.path.join(args.work_dir, 'images')
-    #     image_files = [os.path.join(image_fp, i) for i in os.listdir(image_fp) if '_img.jpg' in i]
-    #     bar = Bar(colored("DEMO", color='blue'), max=len(image_files))
-    #     with torch.no_grad():
-    #         for step, image_path in enumerate(image_files):
-    #             image_name = image_path.split('/')[-1].split('_')[0]
-    #             image = cv2.imread(image_path)[..., ::-1]
-    #             image = cv2.resize(image, (args.size, args.size))
-    #             input = torch.from_numpy(base_transform(image, size=args.size)).unsqueeze(0).to(self.device)
-                
-    #             try:
-    #                 K = np.load(image_path.replace('_img.jpg', '_K.npy'))
-    #             except:                
-    #                 K = np.array([[500, 0, 112], [0, 500, 112], [0, 0, 1]])
-               
-    #             K[0, 0] = K[0, 0] / 224 * args.size
-    #             K[1, 1] = K[1, 1] / 224 * args.size
-    #             K[0, 2] = args.size // 2
-    #             K[1, 2] = args.size // 2
-
-    #             out = self.model(input)
-
-    #             # silhouette
-    #             mask_pred = out.get('mask_pred')
-    #             if mask_pred is not None:
-    #                 mask_pred = (mask_pred[0] > 0.3).cpu().numpy().astype(np.uint8)
-    #                 mask_pred = cv2.resize(mask_pred, (input.size(3), input.size(2)))
-    #                 try:
-    #                     contours, _ = cv2.findContours(mask_pred, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    #                     contours.sort(key=cnt_area, reverse=True)
-    #                     poly = contours[0].transpose(1, 0, 2).astype(np.int32)
-    #                 except:
-    #                     poly = None
-    #             else:
-    #                 mask_pred = np.zeros([input.size(3), input.size(2)])
-    #                 poly = None
-                    
-    #             # vertex
-    #             pred = out['mesh_pred'][0] if isinstance(out['mesh_pred'], list) else out['mesh_pred']
-    #             vertex = (pred[0].cpu() * self.std.cpu()).numpy()
-    #             uv_pred = out['uv_pred']
-    #             if uv_pred.ndim == 4:
-    #                 uv_point_pred, uv_pred_conf = map2uv(uv_pred.cpu().numpy(), (input.size(2), input.size(3)))
-    #             else:
-    #                 uv_point_pred, uv_pred_conf = (uv_pred * args.size).cpu().numpy(), [None,]
-    #             vertex, align_state = registration(vertex, uv_point_pred[0], self.j_regressor, K, args.size, uv_conf=uv_pred_conf[0], poly=poly)
-
-    #             vertex2xyz = mano_to_mpii(np.matmul(self.j_regressor, vertex))
-
-    #             save_a_image_with_mesh_joints(image[..., ::-1], mask_pred, poly, K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz,
-    #                                           os.path.join(args.out_dir, 'demo', image_name + '_plot.jpg'))
-    #             save_mesh(os.path.join(args.out_dir, 'demo', image_name + '_mesh.ply'), vertex, self.faces[0])
-
-    #             bar.suffix = '({batch}/{size})' .format(batch=step+1, size=len(image_files))
-    #             bar.next()
-    #     bar.finish()
-
-
-# ****************************************************************************** read video ******************************************************************************
-    # def demo(self):
-    #     args = self.args
-    #     self.model.eval()
-    #     with torch.no_grad():
-    #         cap = cv2.VideoCapture("video.mp4")
-    #         cnt = 0
-    #         while True:
-    #             ret, img = cap.read()
-    #             if img is None:
-    #                 continue
-    #             K = np.array([[500, 0, 112], [0, 500, 112], [0, 0, 1]])
-    #             image = cv2.resize(img, (args.size, args.size))
-    #             input = torch.from_numpy(base_transform(image, size=args.size)).unsqueeze(0).to(self.device)
-    #             start = time.time()
-    #             out = self.model(input)
-
-    #             end=time.time()
-    #             print("FPS: ", (end-start) ** -1)
-    #             # silhouette
-    #             mask_pred = np.zeros([input.size(3), input.size(2)])
-    #             poly = None
-    #             # vertex
-    #             pred = out['mesh_pred'][0] if isinstance(out['mesh_pred'], list) else out['mesh_pred']
-    #             vertex = (pred[0].cpu() * self.std.cpu()).numpy()
-    #             uv_pred = out['uv_pred']
-    #             if uv_pred.ndim == 4:
-    #                 uv_point_pred, uv_pred_conf = map2uv(uv_pred.cpu().numpy(), (input.size(2), input.size(3)))
-    #             else:
-    #                 uv_point_pred, uv_pred_conf = (uv_pred * args.size).cpu().numpy(), [None,]
-    #             vertex, align_state = registration(vertex, uv_point_pred[0], self.j_regressor, K, args.size, uv_conf=uv_pred_conf[0], poly=poly)
-
-    #             vertex2xyz = mano_to_mpii(np.matmul(self.j_regressor, vertex))                
-
-    #             save_a_image_with_mesh_joints(image[..., ::-1], mask_pred, poly, K, vertex, self.faces[0], uv_point_pred[0], vertex2xyz,
-    #                                         os.path.join(args.out_dir, 'demo', str(cnt) + '_plot.jpg'))
-    #             save_mesh(os.path.join(args.out_dir, 'demo', str(cnt) + '_mesh.ply'), vertex, self.faces[0])
-    #             cnt += 1
