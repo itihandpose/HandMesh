@@ -14,7 +14,7 @@ import streamlit as st
 import torch
 from numpy.lib.type_check import imag
 from PIL import Image
-from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
+# from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
 from termcolor import colored, cprint
 
 from datasets.FreiHAND.kinematics import mano_to_mpii
